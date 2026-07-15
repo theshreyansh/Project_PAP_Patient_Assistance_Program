@@ -1,108 +1,73 @@
-import sys
+import os
 from pathlib import Path
-import time
 
-# Add the project root to Python path
-PROJECT_ROOT = Path(__file__).parent
-sys.path.append(str(PROJECT_ROOT))
+# Project configuration
+PROJECT_NAME = "Kaiser PAP Fraud Detection"
+PROJECT_VERSION = "1.0.0"
+COMPANY_NAME = "Kaiser Pharmaceuticals"
+PAP_PROGRAM_NAME = "Kaiser Patient Assistance Program"
 
-# Import all generators
-from generator.doctor_generator import generate_doctors
-from generator.patient_generator import generate_patients
-from generator.medication_generator import generate_medications
-from generator.vendor_generator import generate_vendors
-from generator.claim_generator import generate_claims
-from generator.billing_generator import generate_billing
-from generator.eligibility_generator import generate_eligibility
-from generator.prescription_generator import generate_prescriptions
-from generator.pap_generator import generate_pap_data
-from generator.relationships import create_relationships
+# Data configuration
+DATA_DIR = Path("data")
+GENERATED_DATA_SIZE = 100000  # Number of records to generate
+RANDOM_SEED = 42
 
-# Import config
-from config import DATA_DIR, GENERATED_DATA_SIZE
+# Fraud configuration
+FRAUD_RATIO = 0.05  # 5% of records will be fraudulent
+FRAUD_SCENARIOS = [
+    "duplicate_claims",
+    "doctor_shopping",
+    "ghost_patients",
+    "vendor_collusion",
+    "medication_diversion",
+    "eligibility_fraud"
+]
 
-def main():
-    print("="*60)
-    print("Kaiser PAP Fraud Detection - Data Generation")
-    print("="*60)
-    print(f"Generating {GENERATED_DATA_SIZE:,} total records...")
-    print()
+# UI configuration
+THEME_COLOR = "#2E86C1"
+SECONDARY_COLOR = "#1A5276"
+BACKGROUND_COLOR = "#F5F7FA"
+TEXT_COLOR = "#2C3E50"
+CARD_COLOR = "#FFFFFF"
 
-    # Ensure data directory exists
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+# File paths
+LOGO_PATH = "assets/logo.png"
+HEALTHCARE_GIF = "assets/healthcare.gif"
+FRAUD_GIF = "assets/fraud.gif"
 
-    start_time = time.time()
+# Data files
+DATA_FILES = {
+    "doctors": "doctors.csv",
+    "patients": "patients.csv",
+    "claims": "claims.csv",
+    "billing": "billing.csv",
+    "eligibility": "eligibility.csv",
+    "medications": "medications.csv",
+    "vendors": "vendors.csv",
+    "prescriptions": "prescriptions.csv",
+    "pap": "pap.csv"  # Patient Assistance Program data
+}
 
-    try:
-        # Step 1: Generate independent datasets first
-        print("1/9: Generating doctors...")
-        doctors = generate_doctors()
-        doctors.to_csv(DATA_DIR / "doctors.csv", index=False)
-        print(f"   ✓ Generated {len(doctors):,} doctor records")
+# PAP specific configurations
+PAP_MEDICATIONS = [
+    "Kaiser-OncoX", "Kaiser-Diabeta", "Kaiser-Cardio",
+    "Kaiser-Respira", "Kaiser-Neurolin", "Kaiser-Immuno"
+]
+PAP_ELIGIBILITY_CRITERIA = {
+    "income_threshold": 50000,  # Annual income in USD
+    "insurance_status": ["uninsured", "underinsured"],
+    "diagnosis_codes": ["C00-C97", "E10-E14", "I00-I99"]  # Cancer, Diabetes, Cardiovascular
+}
 
-        print("\n2/9: Generating patients...")
-        patients = generate_patients()
-        patients.to_csv(DATA_DIR / "patients.csv", index=False)
-        print(f"   ✓ Generated {len(patients):,} patient records")
-
-        print("\n3/9: Generating medications...")
-        medications = generate_medications()
-        medications.to_csv(DATA_DIR / "medications.csv", index=False)
-        print(f"   ✓ Generated {len(medications):,} medication records")
-
-        print("\n4/9: Generating vendors...")
-        vendors = generate_vendors()
-        vendors.to_csv(DATA_DIR / "vendors.csv", index=False)
-        print(f"   ✓ Generated {len(vendors):,} vendor records")
-
-        # Step 2: Generate datasets that depend on the first set
-        print("\n5/9: Generating claims...")
-        claims = generate_claims(patients, doctors)
-        claims.to_csv(DATA_DIR / "claims.csv", index=False)
-        print(f"   ✓ Generated {len(claims):,} claim records")
-
-        print("\n6/9: Generating billing records...")
-        billing = generate_billing(claims, vendors)
-        billing.to_csv(DATA_DIR / "billing.csv", index=False)
-        print(f"   ✓ Generated {len(billing):,} billing records")
-
-        print("\n7/9: Generating eligibility records...")
-        eligibility = generate_eligibility(patients)
-        eligibility.to_csv(DATA_DIR / "eligibility.csv", index=False)
-        print(f"   ✓ Generated {len(eligibility):,} eligibility records")
-
-        print("\n8/9: Generating prescriptions...")
-        prescriptions = generate_prescriptions(patients, doctors, medications)
-        prescriptions.to_csv(DATA_DIR / "prescriptions.csv", index=False)
-        print(f"   ✓ Generated {len(prescriptions):,} prescription records")
-
-        print("\n9/9: Generating PAP records...")
-        pap = generate_pap_data(patients, medications)
-        pap.to_csv(DATA_DIR / "pap.csv", index=False)
-        print(f"   ✓ Generated {len(pap):,} PAP records")
-
-        # Step 3: Create and validate relationships
-        print("\nValidating and creating relationships...")
-        create_relationships()
-        print("   ✓ All relationships validated and created")
-
-        # Final summary
-        elapsed_time = time.time() - start_time
-        print("\n" + "="*60)
-        print("Data Generation Complete!")
-        print("="*60)
-        print(f"Total time: {elapsed_time:.2f} seconds")
-        print(f"Data saved to: {DATA_DIR.absolute()}")
-        print("\nGenerated files:")
-        for file in DATA_DIR.glob("*.csv"):
-            size = file.stat().st_size / 1024  # KB
-            print(f"  - {file.name}: {size:.1f} KB")
-
-    except Exception as e:
-        print(f"\n❌ Error during data generation: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+# Fraud configuration (add to existing config.py)
+FRAUD_THRESHOLDS = {
+    'duplicate_claims': 0.95,      # Similarity threshold for duplicate claims
+    'doctor_shopping': 3,          # More than 3 doctors in 30 days
+    'ghost_patients': 0.8,         # Similarity score for ghost patients
+    'vendor_collusion': 0.5,       # Jaccard similarity for vendor collusion
+    'medication_diversion': 1.5,   # Z-score threshold for medication diversion
+    'patient_fraud': 0.5,          # Fraud score threshold for patients
+    'doctor_fraud': 0.5,           # Fraud score threshold for doctors
+    'vendor_fraud': 0.5,           # Fraud score threshold for vendors
+    'eligibility_fraud': 0.8       # Fraud score threshold for eligibility
+}
